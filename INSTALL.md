@@ -2,7 +2,7 @@
 
 ## Скачать
 
-Откройте [последний выпуск](https://github.com/Bugaev-work/langswic/releases/latest) и скачайте **langswic-Setup.exe** из раздела Assets. Можно использовать [прямую ссылку на установщик](https://github.com/Bugaev-work/langswic/releases/latest/download/langswic-Setup.exe).
+Откройте [последний выпуск](https://github.com/brillti-work/langswic/releases/latest) и скачайте **langswic-Setup.exe** из раздела Assets. Можно использовать [прямую ссылку на установщик](https://github.com/brillti-work/langswic/releases/latest/download/langswic-Setup.exe).
 
 Для работы нужны Windows 10/11 **x64**, .NET Framework 4.8 и раскладки **Russian** и **English (United States)**. На компьютерах с другой архитектурой этот пакет не поддерживается.
 
@@ -10,7 +10,7 @@
 
 ## Проверка файла
 
-Установщик пока не подписан цифровым сертификатом. Windows может показать предупреждение о неизвестном издателе. Перед запуском проверьте, что файл скачан из репозитория `Bugaev-work/langswic`.
+Установщик пока не подписан цифровым сертификатом. Windows может показать предупреждение о неизвестном издателе. Перед запуском проверьте, что файл скачан из репозитория `brillti-work/langswic`.
 
 В Assets также находится **SHA256SUMS.txt**. Для сверки файла в PowerShell выполните команду, указав путь к скачанному установщику:
 

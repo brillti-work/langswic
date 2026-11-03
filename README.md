@@ -4,7 +4,7 @@
 
 Локальный переключатель русской и английской раскладки для Windows. Исправляет ошибочный ввод, поддерживает ручное преобразование текста и пользовательские словари. Работает без аккаунта, подписки и передачи набираемого текста в сеть.
 
-**[Скачать установщик для Windows](https://github.com/Bugaev-work/langswic/releases/latest/download/langswic-Setup.exe)** · [Последний выпуск](https://github.com/Bugaev-work/langswic/releases/latest) · [Инструкция по установке](INSTALL.md)
+**[Скачать установщик для Windows](https://github.com/brillti-work/langswic/releases/latest/download/langswic-Setup.exe)** · [Последний выпуск](https://github.com/brillti-work/langswic/releases/latest) · [Инструкция по установке](INSTALL.md)
 
 ## Возможности
 
@@ -24,9 +24,9 @@ Windows 10/11 x64, .NET Framework 4.8, установленные расклад
 
 ## Установка
 
-Текущая версия: **1.5.5**. Готовый установщик и контрольная сумма SHA-256 доступны в [GitHub Releases](https://github.com/Bugaev-work/langswic/releases/latest). Для установки компилятор и исходный код не требуются.
+Текущая версия: **1.5.5**. Готовый установщик и контрольная сумма SHA-256 доступны в [GitHub Releases](https://github.com/brillti-work/langswic/releases/latest). Для установки компилятор и исходный код не требуются.
 
-1. [Скачайте `langswic-Setup.exe`](https://github.com/Bugaev-work/langswic/releases/latest/download/langswic-Setup.exe) и запустите его.
+1. [Скачайте `langswic-Setup.exe`](https://github.com/brillti-work/langswic/releases/latest/download/langswic-Setup.exe) и запустите его.
 2. Запустите **langswic** из меню «Пуск».
 3. Настройте автоматику и горячие клавиши. Автозапуск включается в настройках или меню трея.
 
