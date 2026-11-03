@@ -62,6 +62,12 @@ public sealed class LanguageEngine : IDisposable {
         if(Regex.IsMatch(context??"",@"(?i)(https?://|www\.|\S+@\S*|[A-Za-z0-9_-]+\.[A-Za-z]{2,})\S*$"))return true;
         return false;
     }
+    internal static bool IsSingleLetterWord(string value){
+        if(string.IsNullOrEmpty(value))return false;
+        int end=value.Length;
+        while(end>1 && ",.;:'\"!?".IndexOf(value[end-1])>=0)end--;
+        return end==1 && char.IsLetter(value[0]);
+    }
     public Decision DecidePrefix(string value,string context,Settings settings,AppRule app=null){
         if(value==null || value.Length<5 || value.Length>32 || !settings.Layout || (app!=null && !app.Layout))
             return new Decision(value,ChangeKind.None,"префикс слишком короткий или автоматика отключена");
@@ -83,6 +89,8 @@ public sealed class LanguageEngine : IDisposable {
     }
     public Decision Decide(string value,string context,Settings settings,AppRule app=null){
         if(string.IsNullOrEmpty(value))return new Decision(value,ChangeKind.None,"пусто");
+        // Prior manual conversion must not become an automatic one-letter rule.
+        if(value.Length==1 || IsSingleLetterWord(value))return new Decision(value,ChangeKind.None,"однобуквенное слово сохраняется");
         if(Regex.IsMatch(value,@"^[0-9]+[бБюЮ][0-9]+$")){
             if(settings.Layout && (app==null||app.Layout) &&
                 !Regex.IsMatch(context??"",@"(?:https?://|www\.|\S+@|[A-Za-zА-Яа-яЁё0-9_#\\])\S*$") &&

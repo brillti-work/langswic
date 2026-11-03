@@ -13,20 +13,26 @@ using System.Windows.Automation.Text;
 
 namespace FastSwitcher {
 internal static class InputIntegrationTests {
+    static void RequireFixtureFocus(){
+        uint pid;Native.GetWindowThreadProcessId(Native.GetForegroundWindow(),out pid);
+        if(InputService.TestTargetProcessId<=0 || pid!=InputService.TestTargetProcessId)throw new InvalidOperationException("Test fixture lost foreground focus; key injection stopped");
+    }
     static Native.INPUT Raw(ushort vk,bool up){
         return new Native.INPUT{type=1,u=new Native.InputUnion{ki=new Native.KEYBDINPUT{vk=vk,flags=(uint)(up?Native.KEYEVENTF_KEYUP:0)}}};
     }
     static void Keys(params ushort[] codes){
+        RequireFixtureFocus();
         var events=new List<Native.INPUT>();
         foreach(ushort code in codes){events.Add(Raw(code,false));events.Add(Raw(code,true));}
         uint sent=Native.SendInput((uint)events.Count,events.ToArray(),Marshal.SizeOf(typeof(Native.INPUT)));
         if(sent!=events.Count)throw new InvalidOperationException("Test SendInput failed: "+sent);
     }
     static void SelectAll(){
+        RequireFixtureFocus();
         Native.SendInput(4,new[]{Raw(Native.VK_CONTROL,false),Raw(0x41,false),Raw(0x41,true),Raw(Native.VK_CONTROL,true)},Marshal.SizeOf(typeof(Native.INPUT)));
     }
     static void DoubleShift(){Keys(Native.VK_SHIFT,Native.VK_SHIFT);}
-    static void Shifted(ushort vk){Native.SendInput(4,new[]{Raw(Native.VK_SHIFT,false),Raw(vk,false),Raw(vk,true),Raw(Native.VK_SHIFT,true)},Marshal.SizeOf(typeof(Native.INPUT)));}
+    static void Shifted(ushort vk){RequireFixtureFocus();Native.SendInput(4,new[]{Raw(Native.VK_SHIFT,false),Raw(vk,false),Raw(vk,true),Raw(Native.VK_SHIFT,true)},Marshal.SizeOf(typeof(Native.INPUT)));}
     static string Read(string path){try{if(!File.Exists(path))return "";using(var stream=new FileStream(path,FileMode.Open,FileAccess.Read,FileShare.ReadWrite))using(var reader=new StreamReader(stream))return reader.ReadToEnd();}catch(IOException){return "";}}
     static void Write(string path,string value){using(var stream=new FileStream(path,FileMode.Create,FileAccess.Write,FileShare.ReadWrite))using(var writer=new StreamWriter(stream))writer.Write(value);}
     static async Task<bool> WaitFor(string path,string expected){
@@ -71,11 +77,13 @@ internal static class InputIntegrationTests {
     public static int Run(bool layoutOnly=false){
         string path=Path.Combine(Path.GetTempPath(),"fast-switcher-input-test-"+Guid.NewGuid().ToString("N")+".txt");
         string dataDir=path+".data";SettingsStore.TestDirectory=dataDir;
+        InputService.TestTargetProcessId=-1;
         Process child=null;var host=new MainForm(false);int failed=0;
         InputService.AcceptSyntheticInput=true;
         host.Shown+=async delegate{
             try{
                 child=Process.Start(new ProcessStartInfo(Application.ExecutablePath,"--input-target \""+path+"\""){UseShellExecute=false});
+                InputService.TestTargetProcessId=child.Id;
                 for(int i=0;i<50&&!File.Exists(path+".ready");i++)await Task.Delay(100);
                 if(!File.Exists(path+".ready"))throw new InvalidOperationException("Test target did not start");
                 IntPtr target=new IntPtr(long.Parse(File.ReadAllText(path+".ready")));
@@ -94,6 +102,22 @@ internal static class InputIntegrationTests {
                 DoubleShift();
                 if(await WaitLanguage(target,0x0409))Console.WriteLine("OK Double Shift remains manual when automation is disabled");else{Console.WriteLine("FAIL disabled automation Double Shift");failed++;}
                 host.SetAutomationForTest(true);await Task.Delay(150);
+                host.SetLearnedRuleForTest("я","z");host.SetLearnedRuleForTest("я,","z,");host.SetLearnedRuleForTest("a","ф");
+                Russian(target);await Focus(target);SelectAll();await Task.Delay(150);Keys(0x5A,Native.VK_SPACE);await Task.Delay(650);
+                if(Read(path)=="я "&&TargetLanguage(target,0x0419))Console.WriteLine("OK lowercase one-letter word ignores a learned layout rule and retains RU");else{Console.WriteLine("FAIL single-letter learned conversion");failed++;}
+                SelectAll();await Task.Delay(150);Shifted(0x5A);Keys(Native.VK_SPACE);await Task.Delay(650);
+                if(Read(path)=="Я "&&TargetLanguage(target,0x0419))Console.WriteLine("OK capital Ya and RU are preserved after Shift typing");else{Console.WriteLine("FAIL capital single-letter word");failed++;}
+                SelectAll();await Task.Delay(150);Keys(0x5A);Shifted(0xBF);Keys(Native.VK_SPACE);await Task.Delay(650);
+                if(Read(path)=="я, "&&TargetLanguage(target,0x0419))Console.WriteLine("OK single-letter word with comma ignores learned rule");else{Console.WriteLine("FAIL punctuated single-letter word");failed++;}
+                English(target);await Focus(target);SelectAll();await Task.Delay(150);Keys(0x41,Native.VK_SPACE);await Task.Delay(650);
+                if(Read(path)=="a "&&TargetLanguage(target,0x0409))Console.WriteLine("OK English article ignores learned single-letter rule");else{Console.WriteLine("FAIL single-letter English article");failed++;}
+                SelectAll();await Task.Delay(150);Shifted(0x49);Keys(Native.VK_SPACE);await Task.Delay(650);
+                if(Read(path)=="I "&&TargetLanguage(target,0x0409))Console.WriteLine("OK capital English I remains unchanged");else{Console.WriteLine("FAIL capital English pronoun");failed++;}
+                Russian(target);await Focus(target);SelectAll();await Task.Delay(150);Keys(0x49,Native.VK_SPACE);await WaitFor(path,"ш ");DoubleShift();bool manualSingle=await WaitFor(path,"i ");await Task.Delay(180);
+                if(manualSingle&&!host.HasLearnedRuleForTest("ш"))Console.WriteLine("OK explicit single-letter conversion does not create automatic learning rule");else{Console.WriteLine("FAIL manual single-letter learning guard");failed++;}
+                DoubleShift();if(await WaitFor(path,"ш "))Console.WriteLine("OK explicit single-letter conversion undo");else{Console.WriteLine("FAIL manual single-letter undo");failed++;}
+                host.ForgetRuleForTest("я");host.ForgetRuleForTest("я,");host.ForgetRuleForTest("a");
+                SelectAll();await Task.Delay(150);
                 English(target);await Focus(target);await Task.Delay(120);
                 Keys(0x48,0x45,0x4C,0x4C,0x4F,Native.VK_SPACE);
                 if(await WaitFor(path,"hello "))Console.WriteLine("OK initial English word stays English");
@@ -297,7 +321,10 @@ internal static class InputIntegrationTests {
                 Native.PostMessage(target,0x8021,IntPtr.Zero,IntPtr.Zero);await WaitFor(path,"KEEP ghbdtn tail");await FocusRich(target);DoubleShift();
                 if(await WaitForVerified(path,"KEEP привет tail",()=>host.InputCorrections>richCorrections) && Read(path+".format")=="bold")Console.WriteLine("OK rich document caret conversion preserves adjacent text and formatting");
                 else{Console.WriteLine("FAIL rich document caret: ["+Read(path)+"] "+host.InputDiagnostic);failed++;}
-                English(target);Native.PostMessage(target,0x8030,IntPtr.Zero,IntPtr.Zero);await WaitFor(path,"");await Task.Delay(150);
+                Native.PostMessage(target,0x8030,IntPtr.Zero,IntPtr.Zero);await WaitFor(path,"");await Task.Delay(150);
+                // WPF may restore a saved layout when the editor receives focus.
+                // Set and verify the scenario's input language after that focus change.
+                English(target);if(!await WaitLanguage(target,0x0409))throw new InvalidOperationException("Custom fixture did not activate EN before typing");
                 Keys(0x52,0x45,0x43,0x49,0x45,0x56,0x45,Native.VK_SPACE);
                 if(await WaitFor(path,"receive "))Console.WriteLine("OK editable Custom role with verified TextPattern");
                 else{Console.WriteLine("FAIL custom editor: ["+Read(path)+"] "+host.InputDiagnostic);failed++;}

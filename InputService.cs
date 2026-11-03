@@ -14,6 +14,7 @@ namespace FastSwitcher {
 public sealed class InputService : IDisposable {
 #if INPUT_TEST
     internal static bool AcceptSyntheticInput;
+    internal static int TestTargetProcessId;
     internal System.Threading.Tasks.Task DelayWorkerForTest(int milliseconds){
         var ready=new System.Threading.Tasks.TaskCompletionSource<bool>();
         Post(()=>{ready.SetResult(true);Thread.Sleep(milliseconds);});return ready.Task;
@@ -79,6 +80,7 @@ public sealed class InputService : IDisposable {
         try{owner.BeginInvoke((Action)delegate{Interlocked.Exchange(ref notifyPending,0);if(!stopped && Changed!=null)Changed();});}catch(InvalidOperationException){Interlocked.Exchange(ref notifyPending,0);}
     }
     void Remember(string source,string target){
+        if(string.IsNullOrEmpty(source)||source.Length==1||LanguageEngine.IsSingleLetterWord(source))return;
         try{owner.BeginInvoke((Action)delegate{if(stopped)return;store.Current.Learned[source.ToLowerInvariant()]=target.ToLowerInvariant();store.Save();});}
         catch(InvalidOperationException){}
     }
@@ -98,6 +100,9 @@ public sealed class InputService : IDisposable {
     bool LayoutFocus(out IntPtr window,out IntPtr focus,out IntPtr layout){
         window=Native.GetForegroundWindow();focus=IntPtr.Zero;layout=IntPtr.Zero;if(window==IntPtr.Zero)return false;
         uint pid;uint thread=Native.GetWindowThreadProcessId(window,out pid);
+#if INPUT_TEST
+        if(TestTargetProcessId!=0 && pid!=TestTargetProcessId)return false;
+#endif
         var info=new Native.GUITHREADINFO{cbSize=Marshal.SizeOf(typeof(Native.GUITHREADINFO))};
         if(thread==0 || !Native.GetGUIThreadInfo(thread,ref info))return false;
         focus=info.hwndFocus==IntPtr.Zero?window:info.hwndFocus;
@@ -115,6 +120,9 @@ public sealed class InputService : IDisposable {
         hwnd=Native.GetForegroundWindow();focus=IntPtr.Zero;layout=IntPtr.Zero;
         if(hwnd==IntPtr.Zero || hwnd==ownerHandle)return false;
         uint pid; uint thread=Native.GetWindowThreadProcessId(hwnd,out pid);
+#if INPUT_TEST
+        if(TestTargetProcessId!=0 && pid!=TestTargetProcessId)return false;
+#endif
         if(pid==0 || pid==Process.GetCurrentProcess().Id)return false;
         var info=new Native.GUITHREADINFO{cbSize=Marshal.SizeOf(typeof(Native.GUITHREADINFO))};
         if(!Native.GetGUIThreadInfo(thread,ref info)){LastReason="Поле ввода недоступно";return false;}

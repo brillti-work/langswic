@@ -46,7 +46,7 @@ static class Program {
             if(!string.Equals(Application.ExecutablePath,target,StringComparison.OrdinalIgnoreCase))File.Copy(Application.ExecutablePath,target,true);
             Shortcut(StartMenu(),target);
             using(var key=Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\langswic")){
-                key.SetValue("DisplayName","langswic");key.SetValue("DisplayVersion","1.5.4");key.SetValue("Publisher","langswic");
+                key.SetValue("DisplayName","langswic");key.SetValue("DisplayVersion","1.5.5");key.SetValue("Publisher","langswic");
                 key.SetValue("InstallLocation",dir);key.SetValue("DisplayIcon",target);
                 key.SetValue("UninstallString","\""+target+"\" --uninstall");key.SetValue("NoModify",1,RegistryValueKind.DWord);
             }
@@ -157,6 +157,16 @@ static class SelfTest {
         Check("government early prefix",e.DecidePrefix("пщмук","",s).Text,"gover");
         Check("no short early prefix",e.DecidePrefix("пщму","",s).Text,"пщму");
         Check("short ambiguity",e.Decide("rj","",s).Text,"rj");
+        var singleLetters=new Settings();
+        foreach(string letter in new[]{"я","а","и","к","в","с","у","о","a","i","z"}){
+            singleLetters.Learned[letter]=e.Convert(letter);
+            Check("single letter with learned rule "+letter,e.Decide(letter,"",singleLetters).Text,letter);
+            string upper=letter.ToUpperInvariant();Check("capital single letter "+upper,e.Decide(upper,"",singleLetters).Text,upper);
+        }
+        singleLetters.Learned["я,"]="z,";
+        Check("single letter punctuation learned rule",e.Decide("я,","",singleLetters).Text,"я,");
+        Check("single letter period learned fallback",e.Decide("я.","",singleLetters).Text,"я.");
+        Check("explicit single letter conversion",e.Convert("Я"),"Z");
         Check("Russian typo",e.Decide("превет","",s).Text,"привет");
         Check("English typo",e.Decide("teh","",s).Text,"the");
         Check("case",e.Decide("ПРивет","",s).Text,"Привет");
@@ -200,6 +210,7 @@ static class SelfTest {
 static class SmokeTest {
     public static int Run(){
 #if INPUT_TEST
+        InputService.TestTargetProcessId=-1;
         string directory=Path.Combine(Path.GetTempPath(),"langswic-ui-test-"+Guid.NewGuid().ToString("N"));SettingsStore.TestDirectory=directory;
         Directory.CreateDirectory(directory);string shortcut=Path.Combine(directory,"langswic.lnk");Program.Shortcut(shortcut,Application.ExecutablePath);
         if(TaskbarIdentity.ShortcutId(shortcut)!="Langswic.Desktop")throw new InvalidOperationException("Shortcut AppUserModelID was not retained.");

@@ -17,6 +17,9 @@ internal static class TextAccess {
     public static AutomationElement FocusedEditable(){
         var element=AutomationElement.FocusedElement;
         for(int depth=0;element!=null && depth<6;depth++){
+#if INPUT_TEST
+            if(InputService.TestTargetProcessId!=0 && element.Current.ProcessId!=InputService.TestTargetProcessId)return null;
+#endif
             if(element.Current.IsPassword || !element.Current.IsEnabled)return null;
             var kind=element.Current.ControlType;object p;
             bool standard=kind==ControlType.Edit || kind==ControlType.ComboBox || kind==ControlType.Document;
@@ -51,6 +54,9 @@ internal static class TextAccess {
     }
     static bool ReadOnce(AutomationElement element,out Snapshot snapshot){
         snapshot=null;ReadState="поле недоступно";if(element==null || element.Current.IsPassword || !element.Current.IsEnabled)return false;
+#if INPUT_TEST
+        if(InputService.TestTargetProcessId!=0 && element.Current.ProcessId!=InputService.TestTargetProcessId)return false;
+#endif
         object p;ReadState="нет TextPattern";if(!element.TryGetCurrentPattern(TextPattern.Pattern,out p))return false;
         var pattern=(TextPattern)p;var ranges=pattern.GetSelection();ReadState="нет единственного диапазона";if(ranges==null || ranges.Length!=1)return false;
         var doc=pattern.DocumentRange;string all=doc.GetText(65537);if(all.Length>65536)return false;

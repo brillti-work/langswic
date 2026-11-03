@@ -86,6 +86,8 @@ public sealed class MainForm : Form {
     }
     internal System.Threading.Tasks.Task DelayInputWorkerForTest(int ms){return input.DelayWorkerForTest(ms);}
     internal void ForgetRuleForTest(string word){store.Current.Learned.Remove(word);}
+    internal void SetLearnedRuleForTest(string source,string target){store.Current.Learned[source]=target;}
+    internal bool HasLearnedRuleForTest(string word){return store.Current.Learned.ContainsKey(word);}
     internal void SetAutomationForTest(bool enabled){store.Current.Enabled=enabled;input.Clear();}
 #endif
     public bool LayoutValid {get{return sidebar!=null&&content!=null&&content.Top>=sidebar.Bottom&&content.Width>500;}}
@@ -134,7 +136,7 @@ public sealed class MainForm : Form {
         for(int i=0;i<names.Length;i++){navigation.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,25));int index=i;var b=new PillButton{Text=names[i],Dock=DockStyle.Fill,FlatStyle=FlatStyle.Flat,TabIndex=i,Font=new Font("Segoe UI Semibold",10),Margin=new Padding(2,0,2,0)};b.FlatAppearance.BorderSize=0;b.Click+=delegate{ShowPage(index);};navigation.Controls.Add(b,i,0);nav.Add(b);}
         Controls.Add(new BlueHeader{Dock=DockStyle.Top,Height=128});
         var footer=new Panel{Dock=DockStyle.Bottom,Height=36,Padding=new Padding(22,0,20,0)};
-        footer.Controls.Add(new Label{Text="v. 1.5.4   ·   Локальная обработка",Dock=DockStyle.Left,Width=400,TextAlign=ContentAlignment.MiddleLeft});
+        footer.Controls.Add(new Label{Text="v. 1.5.5   ·   Локальная обработка",Dock=DockStyle.Left,Width=400,TextAlign=ContentAlignment.MiddleLeft});
         var theme=new PillButton{Text="Сменить тему",Dock=DockStyle.Right,Width=135,FlatStyle=FlatStyle.Flat};theme.FlatAppearance.BorderSize=0;theme.Click+=delegate{ChangeTheme();};footer.Controls.Add(theme);Controls.Add(footer);
         trayMenu=new ContextMenuStrip{Font=new Font("Segoe UI",10),Padding=new Padding(5,7,5,7),ShowImageMargin=false,ShowCheckMargin=true};
         trayStatus=new ToolStripMenuItem("langswic · локальная обработка"){Enabled=false};trayMenu.Items.Add(trayStatus);
